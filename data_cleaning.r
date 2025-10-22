@@ -41,12 +41,21 @@ raw_data <- data.frame(lapply(raw_data, type.convert, as.is = TRUE))
 raw_data$porc_agropecuaria <- round(raw_data$Valor.agropecuária / raw_data$Total, 2)
 raw_data$porc_industria <- round(raw_data$Valor.Indústria / raw_data$Total, 2)
 
-colnames(raw_data)
-
-cols_remover <- c("", "coluna2", "coluna3")
-
-df <- df[, !(names(df) %in% cols_remover)]
+#IDEB para númerico
+raw_data$ideb <- as.numeric(gsub(",", ".", raw_data$ideb))
 
 #Transformando as taxas
 raw_data$taxa_mortalidade <- round((raw_data$Óbitos_p.Ocorrênc / raw_data$População_estimada) * 100000, 2)
-summary(raw_data)
+raw_data$taxa_mort_agressao <- round((raw_data$obitos_agressao / raw_data$População_estimada) * 100000, 2)
+raw_data$taxa_nascimentos <- round((raw_data$Nascim_p.ocorrênc / raw_data$População_estimada) * 100000, 2)
+
+cols_remover <- c("Valor.agropecuária", "Valor.Indústria", "Valor.Serviços", 'Valor.Administrativo', 'Total', 'Impostos',
+                  'PIB', 'obitos_agressao', 'Óbitos_p.Ocorrênc', 'Nascim_p.ocorrênc')
+
+raw_data <- raw_data[, !(names(raw_data) %in% cols_remover)]
+
+colnames(raw_data)
+names(raw_data)[names(raw_data) == "População_estimada"] <- "populacao"
+names(raw_data)[names(raw_data) == "PIB.per.capita"] <- "pib_percap"
+
+write.csv2(raw_data, 'data/dados.csv', row.names = FALSE)
