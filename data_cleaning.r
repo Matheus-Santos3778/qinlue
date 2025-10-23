@@ -1,21 +1,27 @@
-agressoes <- read.csv2("data/agressoes.csv", fileEncoding = "UTF-8")
+acidentes <- read.csv2("data/acidentes.csv", fileEncoding = "UTF-8")
 ideb <- read.csv2("data/ideb.csv", fileEncoding = "UTF-8")
-mortalidade <- read.csv2("data/mortalidade.csv", fileEncoding = "UTF-8")
 nascimentos <- read.csv2("data/nascimentos.csv", fileEncoding = "UTF-8")
 pib <- read.csv2("data/pib.csv", fileEncoding = "UTF-8")
 populacao <- read.csv2("data/populacao.csv", fileEncoding = "UTF-8")
 
-#Arrumando as bases
-agressoes$cod_mun <- sub(" .*", "", agressoes$Município)
-agressoes$nome_mun <- sub("^[^ ]+ ", "", agressoes$Município)
-names(agressoes)[names(agressoes) == "Óbitos_p.Ocorrênc"] <- "obitos_agressao"
-agressoes$Município <- NULL
+taxa_urbanizacao <- read.csv2("data/taxa_urbanizacao.csv", fileEncoding = "UTF-8")
+jovens <- read.csv2("data/jovens.csv", fileEncoding = "UTF-8")
+cobertura_bcg <- read.csv2("data/cobertura_bcg.csv", fileEncoding = "UTF-8")
 
-mortalidade$cod_mun <- sub(" .*", "", mortalidade$Município)
-mortalidade$Município <- NULL
+#Arrumando as bases
+acidentes$cod_mun <- sub(" .*", "", acidentes$Município)
+acidentes$nome_mun <- sub("^[^ ]+ ", "", acidentes$Município)
+names(acidentes)[names(acidentes) == "Óbitos_p.Ocorrênc"] <- "acidentes"
+acidentes$Município <- NULL
 
 nascimentos$cod_mun <- sub(" .*", "", nascimentos$Município)
 nascimentos$Município <- NULL
+
+cobertura_bcg$cod_mun <- sub(" .*", "", cobertura_bcg$municipio)
+cobertura_bcg$municipio <- NULL
+
+jovens$cod_mun <- sub(" .*", "", jovens$municipio)
+jovens$municipio <- NULL
 
 populacao$cod_mun <- sub(" .*", "", populacao$Município)
 populacao$Município <- NULL
@@ -28,33 +34,34 @@ ideb$cod_mun <- substr(ideb$codigo, 1, nchar(ideb$codigo) - 1)
 ideb$municipio <- NULL
 ideb$codigo <- NULL
 
-raw_data <- merge(agressoes, mortalidade, by = "cod_mun", all.x = TRUE)
+taxa_urbanizacao$cod_mun <- substr(taxa_urbanizacao$codigo, 1, nchar(taxa_urbanizacao$codigo) - 1)
+taxa_urbanizacao$municipio <- NULL
+taxa_urbanizacao$codigo <- NULL
+
+raw_data <- merge(acidentes, cobertura_bcg, by = "cod_mun", all.x = TRUE)
 raw_data <- raw_data[, c(1, 3, 2, 4)]
 raw_data <- merge(raw_data, nascimentos, by = "cod_mun", all.x = TRUE)
 raw_data <- merge(raw_data, populacao, by = "cod_mun", all.x = TRUE)
 raw_data <- merge(raw_data, pib, by = "cod_mun", all.x = TRUE)
 raw_data <- merge(raw_data, ideb, by = "cod_mun", all.x = TRUE)
+raw_data <- merge(raw_data, jovens, by = "cod_mun", all.x = TRUE)
+raw_data <- merge(raw_data, taxa_urbanizacao, by = "cod_mun", all.x = TRUE)
 
 raw_data[] <- lapply(raw_data, function(x) replace(x, x == "-", 0))
 raw_data <- data.frame(lapply(raw_data, type.convert, as.is = TRUE))
-
-raw_data$porc_agropecuaria <- round(raw_data$Valor.agropecuária / raw_data$Total, 2)
-raw_data$porc_industria <- round(raw_data$Valor.Indústria / raw_data$Total, 2)
 
 #IDEB para númerico
 raw_data$ideb <- as.numeric(gsub(",", ".", raw_data$ideb))
 
 #Transformando as taxas
-raw_data$taxa_mortalidade <- round((raw_data$Óbitos_p.Ocorrênc / raw_data$População_estimada) * 100000, 2)
-raw_data$taxa_mort_agressao <- round((raw_data$obitos_agressao / raw_data$População_estimada) * 100000, 2)
 raw_data$taxa_nascimentos <- round((raw_data$Nascim_p.ocorrênc / raw_data$População_estimada) * 100000, 2)
+raw_data$taxa_jovens <- round((raw_data$pop_jovens / raw_data$População_estimada) * 100000, 2)
 
 cols_remover <- c("Valor.agropecuária", "Valor.Indústria", "Valor.Serviços", 'Valor.Administrativo', 'Total', 'Impostos',
-                  'PIB', 'obitos_agressao', 'Óbitos_p.Ocorrênc', 'Nascim_p.ocorrênc')
+                  'PIB', 'Óbitos_p.Ocorrênc', 'Nascim_p.ocorrênc', 'pop_jovens')
 
 raw_data <- raw_data[, !(names(raw_data) %in% cols_remover)]
 
-colnames(raw_data)
 names(raw_data)[names(raw_data) == "População_estimada"] <- "populacao"
 names(raw_data)[names(raw_data) == "PIB.per.capita"] <- "pib_percap"
 
